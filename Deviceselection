@@ -1,1 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced DBS Device Selection Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; padding: 20px; background-color: #f8f9fa; }
+    h1, h2 { color: #003366; }
+    label { display: block; margin-top: 10px; }
+    select, input[type="range"] { margin-top: 5px; width: 100%; }
+    button { margin-top: 20px; padding: 10px 15px; background-color: #0056b3; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background-color: #003d80; }
+    #result { margin-top: 30px; padding: 20px; background-color: #ffffff; border: 1px solid #ccc; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background-color: #e6f2ff; }
+    canvas { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Deep Brain Stimulation (DBS) Intake Form</h1>
 
+  <form id="dbsForm">
+    <h2>Patient Information</h2>
+    <label>Surgical Target:
+      <select name="target" required>
+        <option value="STN">STN (Subthalamic Nucleus)</option>
+        <option value="GPi">GPi (Globus Pallidus internus)</option>
+        <option value="VIM">VIM/PSA (Ventral Intermediate Nucleus/Posterior Subthalamic Area)</option>
+      </select>
+    </label>
+
+    <label>Energy Needs:
+      <select name="energy" required>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </label>
+
+    <label>Battery Preference:
+      <select name="battery" required>
+        <option value="RC">Rechargeable (RC)</option>
+        <option value="PC">Primary Cell (PC)</option>
+      </select>
+    </label>
+
+    <h2>Special Requirements (Rate 0-10)</h2>
+    <label>Need for 3T MRI Compatibility: <input type="range" name="mri3t" min="0" max="10" required></label>
+    <label>Need for Remote Programming: <input type="range" name="remote" min="0" max="10" required></label>
+    <label>Need for Brain Sensing: <input type="range" name="sensing" min="0" max="10" required></label>
+    <label>Need for Adaptive DBS: <input type="range" name="adaptive" min="0" max="10" required></label>
+
+    <button type="button" onclick="recommendDevice()">Submit and Get Recommendation</button>
+    <button type="button" onclick="resetForm()">Reset</button>
+  </form>
+
+  <div id="result"></div>
+  <canvas id="scoreChart" width="400" height="200" style="display:none;"></canvas>
+  <button id="downloadButton" style="display:none" onclick="downloadPDF()">Download Report</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    function recommendDevice() {
+      const form = document.forms['dbsForm'];
+      const target = form['target'].value;
+      const mri3t = parseInt(form['mri3t'].value);
+      const remote = parseInt(form['remote'].value);
+      const sensing = parseInt(form['sensing'].value);
+      const adaptive = parseInt(form['adaptive'].value);
+
+      let devices =;
+
+      let leadRecommendation = "";
+      if (target === 'STN' |
+| target === 'VIM') {
+        leadRecommendation = "Recommended Lead: 0.5 mm directional lead (Medtronic SenSight™, Boston Cartesia™, Abbott Infinity™).";
+      } else if (target === 'GPi') {
+        leadRecommendation = "Recommended Lead: 1.5 mm or 0.5 mm spacing lead depending on internal capsule proximity.";
+      }
+
+      devices.sort((a, b) => b.score - a.score);
+
+      let table = `<table><tr><th>Device Name</th><th>Key Features</th><th>Score</th></tr>`;
+      devices.forEach(device => {
+        table += `<tr><td>${device.name}</td><td>${device.features}</td><td>${device.score}</td></tr>`;
+      });
+      table += `</table>`;
+
+      document.getElementById('result').innerHTML = `<h2>Recommended Devices</h2>${table}<h2>${leadRecommendation}</h2>`;
+      document.getElementById('downloadButton').style.display = 'inline';
+
+      const ctx = document.getElementById('scoreChart').getContext('2d');
+      const chartData = {
+        labels: devices.map(d => d.name),
+        datasets:
+        }]
+      };
+
+      if (window.barChart) {
+        window.barChart.destroy();
+      }
+
+      window.barChart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      document.getElementById('scoreChart').style.display = 'block';
+    }
+
+    function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("DBS Device Selection Report", 10, 10);
+      const content = document.getElementById('result').innerText;
+      const lines = doc.splitTextToSize(content, 180);
+      doc.text(lines, 10, 20);
+      doc.save("DBS_Selection_Report.pdf");
+    }
+
+    function resetForm() {
+      document.getElementById('dbsForm').reset();
+      document.getElementById('result').innerHTML = "";
+      document.getElementById('scoreChart').style.display = 'none';
+      document.getElementById('downloadButton').style.display = 'none';
+      if (window.barChart) {
+        window.barChart.destroy();
+      }
+    }
+  </script>
+</body>
+</html>
